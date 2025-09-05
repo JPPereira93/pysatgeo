@@ -4,7 +4,7 @@ import geopandas as gpd
 import rasterio
 from scipy.ndimage import distance_transform_edt
 import numpy as np
-from pysal.viz.mapclassify import NaturalBreaks
+from mapclassify import NaturalBreaks
 import pandas as pd
 import subprocess
 import shutil
