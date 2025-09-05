@@ -1,0 +1,20 @@
+name: pysatgeo
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - gdal        # install GDAL from conda-forge (much easier than pip)
+  - rasterio
+  - rioxarray
+  - geopandas
+  - shapely
+  - scikit-learn
+  - matplotlib
+  - mapclassify
+  - scipy
+  - pandas
+  - numpy
+  - requests
+  - pip:
+      - pysatgeo   # install your package from PyPI
