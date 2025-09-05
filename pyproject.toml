@@ -1,6 +1,6 @@
 [project]
 name = "pysatgeo"
-version = "0.0.2"
+version = "0.0.6"
 description = "Python package for satellite and geospatial processing functions for raster and vector data"
 readme = "README.md"
 requires-python = ">=3.8"
