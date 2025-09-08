@@ -1,10 +1,15 @@
 [project]
 name = "pysatgeo"
-version = "0.0.6"
-description = "Python package for satellite and geospatial processing functions for raster and vector data"
+version = "0.0.1"
+dynamic = [
+    "dependencies",
+]
+description = "Python package for satellite processing functions for raster and also vector"
 readme = "README.md"
 requires-python = ">=3.8"
-keywords = ["pysatgeo", "geospatial", "remote-sensing", "satellite", "gis"]
+keywords = [
+    "pysatgeo",
+]
 license = {text = "MIT License"}
 authors = [
   {name = "Joao Pereira", email = "joaopmpereira93@gmail.com"},
@@ -20,34 +25,34 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-dependencies = [
-    "numpy",
-    "pandas",
-    "geopandas",
-    "rasterio",
-    "rioxarray",
-    "xarray",
-    "scikit-learn",
-    "matplotlib",
-    "mapclassify",
-    "scipy",
-    "shapely",
-    "requests",
-    "gdal",  # Note: may require system/conda install
-]
-
 [project.entry-points."console_scripts"]
 pysatgeo = "pysatgeo.cli:main"
 
+[project.optional-dependencies]
+all = [
+    "pysatgeo[extra]",
+]
+
+extra = [
+    "pandas",
+]
+
+
+[tool]
 [tool.setuptools.packages.find]
 include = ["pysatgeo*"]
 exclude = ["docs*"]
 
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+
 [tool.distutils.bdist_wheel]
 universal = true
 
+
 [tool.bumpversion]
-current_version = "0.0.6"
+current_version = "0.0.1"
 commit = true
 tag = true
 
@@ -63,8 +68,11 @@ replace = '__version__ = "{new_version}"'
 
 
 [tool.flake8]
-exclude = ["docs"]
+exclude = [
+    "docs",
+]
 max-line-length = 88
+
 
 [project.urls]
 Homepage = "https://github.com/JPPereira93/pysatgeo"
