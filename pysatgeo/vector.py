@@ -341,3 +341,170 @@ def convert_pk_to_string(pk_string):
 """ # Example usage
     gdf['PK'] = gdf['PK'].apply(convert_pk_to_string) """
     
+
+def merge_vector_files(vector_dir):
+    """
+    Merge all GeoPackage, GeoJSON, ESRI Shapefile files in the specified directory 
+    using ogrmerge.py.
+
+    :param vector_dir: Path to the directory containing the geospatial files.
+    """
+    # Pattern to match all supported vector files including GeoParquet
+    input_vectors = glob.glob(os.path.join(vector_dir, '*.gpkg')) + \
+                    glob.glob(os.path.join(vector_dir, '*.geojson')) + \
+                    glob.glob(os.path.join(vector_dir, '*.shp')) 
+
+    total_vectors = len(input_vectors)
+    print(f"Total number of geospatial files found: {total_vectors}")
+
+    if total_vectors == 0:
+        print("No geospatial files found to merge.")
+        return
+
+    # Get the base name and extension from the first input vector to determine the output format
+    base_name, ext = os.path.splitext(os.path.basename(input_vectors[0]))
+    
+    # Map the input extension to the appropriate output format for ogrmerge
+    output_format_map = {
+        '.gpkg': 'GPKG',
+        '.geojson': 'GeoJSON',
+        '.shp': 'ESRI Shapefile'
+    }
+
+    # Determine the output format based on the input file's extension
+    output_format = output_format_map.get(ext.lower(), 'GPKG')  # Default to GeoPackage if unknown
+    output_file = os.path.join(vector_dir, f"{base_name}_merged{ext}")  # Use the same extension as the input
+
+    print(f"\nMerging all files into {output_file} using format: {output_format}")
+
+    # Use ogrmerge.py to merge the vector files
+    merge_command = ['ogrmerge.py', '-single', '-f', output_format, '-o', output_file] + input_vectors
+
+    try:
+        subprocess.run(merge_command, check=True)
+        print(f"Merge completed successfully. Output saved to {output_file}.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during merge: {e.stderr}")
+
+# Example Usage
+
+"""
+merge_vector_files(
+    vector_dir = "path/to/input1.gpkg"
+)
+
+"""
+
+def merge_geoparquet_files(vector_dir):
+    """
+    Merge all GeoParquet files in the specified directory and save to a new GeoParquet file.
+
+    :param vector_dir: Path to the directory containing the GeoParquet files.
+    """
+
+    input_parquets = glob.glob(os.path.join(vector_dir, '*.parquet'))
+
+    if len(input_parquets) == 0:
+        print("No GeoParquet files found to merge.")
+        return
+
+    # Read all GeoParquet files and concatenate them
+    geodataframes = [gpd.read_parquet(pq) for pq in input_parquets]
+    merged_gdf = gpd.GeoDataFrame(pd.concat(geodataframes, ignore_index=True))
+
+    # Extract a base filename from the first GeoParquet file (without the part_X)
+    base_filename = os.path.basename(input_parquets[0])
+    base_name, ext = os.path.splitext(base_filename)
+    
+    # Remove the last part after the second to last underscore (e.g., "_part_8") and add "_merged"
+    if '_' in base_name:
+        base_name = '_'.join(base_name.split('_')[:-1]) + '_merged'
+    else:
+        base_name += '_merged'
+
+    output_file = os.path.join(vector_dir, f"{base_name}{ext}")
+    merged_gdf.to_parquet(output_file)
+
+    print(f"Merged GeoParquet file saved as {output_file}")
+
+
+def convert_and_buffer_vectors(input_folder, output_folder, target_epsg, buffer_distance=None):
+    """
+    Convert vector files to a specified EPSG and create a buffer around the features.
+    
+    Parameters:
+        input_folder (str): Path to the folder containing input vector files.
+        output_folder (str): Path to save the processed vector files.
+        target_epsg (int): EPSG code for the target coordinate reference system.
+        buffer_distance (float): Buffer distance in meters for each side.
+        
+    Returns:
+        None
+    """
+    os.makedirs(output_folder, exist_ok=True)
+
+    for file_name in os.listdir(input_folder):
+        if file_name.endswith((".shp", ".geojson")):
+            input_path = os.path.join(input_folder, file_name)
+            
+            gdf = gpd.read_file(input_path)
+            
+            gdf = gdf.to_crs(epsg=target_epsg)
+            
+            
+            gdf = gdf.dissolve()
+            
+            if buffer_distance is not None:
+                gdf["geometry"] = gdf.buffer(buffer_distance)
+            
+            base_name, ext = os.path.splitext(file_name)
+            parts = base_name.split("_")
+            
+            if parts[-1].isdigit() and len(parts[-1]) == 4:
+                parts.pop()
+            
+            base_name = "_".join(parts) + f"_{target_epsg}"
+            output_path = os.path.join(output_folder, f"{base_name}_buffered{ext}")
+            
+            # Save the processed vector file
+            gdf.to_file(output_path)
+            
+            print(f"Processed and saved: {output_path}")
+
+def convert_epsg_vectors(input_folder, output_folder, target_epsg):
+    """
+    Convert vector files to a specified EPSG and create a buffer around the features.
+    
+    Parameters:
+        input_folder (str): Path to the folder containing input vector files.
+        output_folder (str): Path to save the processed vector files.
+        target_epsg (int): EPSG code for the target coordinate reference system.
+        buffer_distance (float): Buffer distance in meters for each side.
+        
+    Returns:
+        None
+    """
+    os.makedirs(output_folder, exist_ok=True)
+
+    for file_name in os.listdir(input_folder):
+        if file_name.endswith((".shp", ".geojson")):
+            input_path = os.path.join(input_folder, file_name)
+            
+            gdf = gpd.read_file(input_path)
+            gdf = gdf.to_crs(epsg=target_epsg)
+            gdf = gdf.dissolve()
+            
+            base_name, ext = os.path.splitext(file_name)
+            parts = base_name.split("_")
+            
+            # Remove last part if it's a 4-digit EPSG code
+            if parts[-1].isdigit() and len(parts[-1]) == 4:
+                parts.pop()
+            
+            base_name = "_".join(parts) + f"_{target_epsg}"
+            output_path = os.path.join(output_folder, f"{base_name}{ext}")
+            
+            # Save the processed vector file
+            gdf.to_file(output_path)
+            
+            print(f"Processed and saved: {output_path}")

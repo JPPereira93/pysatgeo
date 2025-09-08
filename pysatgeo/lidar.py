@@ -5,6 +5,8 @@ LiDAR LAS/LAZ processing for pysatgeo.
 import laspy
 import os
 import glob
+import subprocess
+
 
 def convert_las_to_laz(input_directory):
     """
@@ -33,6 +35,33 @@ def convert_las_to_laz(input_directory):
 input_directory_parte = r"E:\Spotlite_JPereira\Ascendi\Concessao_Norte\Dados_Fornecidos\ANT_LiDar\ANT_Parte_1"
  
 convert_las_to_laz(input_directory_parte)  """
+
+def convert_laz_to_copc(input_file):
+    """
+    Converts a LAZ file to a COPC LAZ file
+    :param input_file: Path to the input LAZ file. This should be the full path to the file, ensuring it exists and is accessible.
+    """
+    # Construct the output filename with a '.copc.laz' extension
+    output_file = f"{os.path.splitext(input_file)[0]}.copc.laz"
+
+    # Construct and run the lascopcindex command
+    command = ['lascopcindex64', '-i', input_file, '-o', output_file]
+
+    try:
+        result = subprocess.run(command, check=True, text=True, capture_output=True)
+        output_dir = os.path.dirname(output_file)
+        output_filename = os.path.basename(output_file)
+        print(f"Conversion successful: {output_filename} saved in directory {output_dir}")
+    except subprocess.CalledProcessError as e:
+        print("Error during conversion:", e.stderr)
+
+""" Example usage
+input_file = r"E:\Spotlite_JPereira\Ascendi\Concessao_Norte\Dados_Fornecidos\ANT_LiDar\ANT_Parte_1\CN_Parte1_Merged.laz"
+
+convert_laz_to_copc(input_file)
+"""
+
+
 
 def thin_laz_files(input_directory, step_size):
     # Pattern to match all LAZ files
@@ -140,6 +169,49 @@ def filter_laz(input_file, classification_label=2):
             print(f"\nFiltering successful: {output_filename} saved in directory {output_dir}")
         else:
             print("\nError during filtering.")
+            print("Return code:", return_code)
+
+    except Exception as e:
+        print("An unexpected error occurred:", str(e))
+
+def laz_to_dem(input_file, output_file=None, resolution=1, tile_size=1000, threads=16):
+    """
+    Converts a LAZ file to a DEM using PDAL Wrench commands.
+    
+    :param input_file: Path to the input LAZ file. This should be the full path to the file, ensuring it exists and is accessible.
+    :param output_file: Optional. Path to the output TIFF file. If not specified, defaults to a name derived from the input file.
+    :param resolution: Optional. Resolution of the output DEM in meters. Default is 1 meter.
+    :param tile_size: Optional. Size of the tiles for processing. Default is 1000.
+    :param threads: Optional. Number of threads to use for processing. Default is 16.
+    """
+    if output_file is None:
+        output_file = f"{os.path.splitext(input_file)[0]}_{resolution}m.tiff"
+
+    command = [
+        'pdal_wrench', 'to_raster',
+        f'--output={output_file}',
+        f'--resolution={resolution}',
+        f'--tile-size={tile_size}',
+        f'--threads={threads}',
+        '--attribute=Z',
+        f'--input={input_file}',
+    ]
+
+    try:
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        for line in process.stdout:
+            print(line, end='')  # Print each line from stdout
+
+        # Wait for the process to complete
+        return_code = process.wait()
+        
+        if return_code == 0:
+            output_dir = os.path.dirname(output_file)
+            output_filename = os.path.basename(output_file)
+            print(f"\nConversion successful: {output_filename} saved in directory {output_dir}")
+        else:
+            print("\nError during conversion.")
             print("Return code:", return_code)
 
     except Exception as e:

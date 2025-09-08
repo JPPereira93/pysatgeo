@@ -10,6 +10,8 @@ from rasterio.mask import mask
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import os
+from mapclassify import NaturalBreaks
+import subprocess
 
 def reproject_clip_resample_tiff(input_tiff, output_tiff=None, aoi_shapefile=None, target_srs=None, target_res_x=None, target_res_y=None, resampling_method=None, clip=False, clip_by_extent=False, no_data=None):
     """
@@ -1142,3 +1144,365 @@ def reclassify_raster_nbreaks(input_raster_path, accept_zero_as_min=False):
     reclassify_raster_nbreaks(
     input_raster_path = "/path/to/input.tif"
 ) """
+
+
+def set_nodata_value(input_raster_path, nodata_value):
+    """
+    Set the NoData value of a raster and overwrite the input file.
+
+    Parameters:
+    input_raster_path (str): Path to the raster file.
+    nodata_value (numeric): The value to be set as NoData.
+    """
+    try:
+        # Open the input raster in update mode
+        raster = gdal.Open(input_raster_path, gdal.GA_Update)
+
+        if not raster:
+            raise IOError("Could not open raster file.")
+
+        # Set the NoData value for each band
+        for i in range(1, raster.RasterCount + 1):
+            band = raster.GetRasterBand(i)
+            data_type = band.DataType
+            # Ensure the data type supports negative values if nodata_value is negative
+            if nodata_value < 0 and gdal.GetDataTypeName(data_type).startswith('UInt'):
+                raise ValueError(f"The raster data type is {gdal.GetDataTypeName(data_type)}, which does not support negative NoData values.")
+            band.SetNoDataValue(nodata_value)
+            band.FlushCache()  # Ensure changes are written immediately
+
+        print(f"NoData value set to {nodata_value} successfully in {input_raster_path}")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    finally:
+        # Close the raster file to ensure changes are saved
+        raster = None
+        
+"""     # Example usage
+   set_nodata_value(
+    input_raster_path = "/path/to/input.tif"
+    nodata_value = -9999
+) """
+
+def normalize_raster(input_tiffs):
+    """
+    Normalize a list of raster files using Min-Max scaling and save each as a new TIFF file
+    with '_normalized' suffix added to the original filename.
+
+    :param input_tiffs: List of paths to the input TIFF files
+    :return: None
+    """
+    for input_tiff in input_tiffs:
+        print(f"Processing {input_tiff}...")
+
+        # Load the TIFF file and convert to float32
+        raster = rioxarray.open_rasterio(input_tiff).astype(np.float32)
+
+        # Get the NoData value
+        no_data_value = raster.rio.nodata
+
+        # Get the data as a NumPy array and mask NoData values
+        data = raster.values
+        masked_data = np.ma.masked_equal(data, no_data_value)
+
+        # Reshape the data for MinMaxScaler (1D array)
+        reshaped_data = masked_data.compressed().reshape(-1, 1)
+
+        # Initialize the scaler
+        scaler = MinMaxScaler()
+
+        # Fit and transform the data
+        normalized_data = scaler.fit_transform(reshaped_data)
+
+        # Create an array for the normalized values
+        normalized_full = np.full(data.shape, no_data_value, dtype=np.float32)  # Start with NoData values
+        normalized_full[~masked_data.mask] = normalized_data.flatten()  # Fill in normalized values
+
+        # Update the raster data with normalized values directly
+        raster.values = normalized_full
+
+        # Generate output file path with '_normalized' suffix
+        base, ext = os.path.splitext(input_tiff)
+        output_tiff = f"{base}_normalized{ext}"
+
+        # Save the normalized raster to a new TIFF file
+        raster.rio.to_raster(output_tiff)
+
+        print(f"Normalized raster saved at {output_tiff}")
+
+""" # Example usage
+input_tiff = r"D:\Geospatial_Pessoal\FFSM\Fatores_Condicionantes\Rainfall\PDIR_2024-10-21011811pm\PDIR_2023_sum_32629.tif"
+output_tiff = r"D:\Geospatial_Pessoal\FFSM\Fatores_Condicionantes\Rainfall\PDIR_2024-10-21011811pm\PDIR_2023_normalized.tif"
+
+normalize_raster(input_tiff, output_tiff) """
+
+def normalize_raster_fixed_scale(input_raster_path, output_normalized_raster_path, fixed_min, fixed_max):
+    # Use the provided fixed minimum and maximum values
+    fixed_min_value = fixed_min
+    fixed_max_value = fixed_max
+
+    with rasterio.open(input_raster_path) as src:
+        # Read the first band and cast raster data to float
+        raster_data = src.read(1).astype(float)
+
+        # Identify the 'no data' value from the source
+        nodata = src.nodata
+
+        # Create a mask to exclude 'no data' value only
+        mask = raster_data != nodata if nodata is not None else np.ones_like(raster_data, dtype=bool)
+
+        # Normalize the raster values to the range [0, 1] based on the fixed scale
+        normalized_data = np.copy(raster_data)
+        scale_range = fixed_max_value - fixed_min_value  # Calculate the range of the scale
+        if scale_range != 0:  # Avoid division by zero
+            normalized_data[mask] = (raster_data[mask] - fixed_min_value) / scale_range
+        else:
+            # Handle case where scale range is zero (unlikely in this scenario)
+            normalized_data[mask] = 0.0
+
+        # Set 'no data' areas to original nodata value
+        if nodata is not None:
+            normalized_data[~mask] = nodata
+
+        # Adjust the profile for a single band and write the output
+        profile = src.profile
+        profile.update(dtype=rasterio.float32, count=1, nodata=nodata)
+
+        with rasterio.open(output_normalized_raster_path, 'w', **profile) as dst:
+            dst.write(normalized_data.astype(rasterio.float32), 1)
+
+    # Print the input raster path and the fixed scale values
+    print(f"Input Raster: {input_raster_path}")
+    print(f"Fixed Minimum Value: {fixed_min_value}")
+    print(f"Fixed Maximum Value: {fixed_max_value}")
+
+    # Print the normalized data statistics (excluding NoData values)
+    print(f"Normalized Data Min (excluding NoData): {normalized_data[mask].min()}")
+    print(f"Normalized Data Max (excluding NoData): {normalized_data[mask].max()}")
+
+""" # Example usage
+input_raster_path = "path_to_your_input_raster.tiff"
+output_normalized_raster_path = "path_to_your_output_normalized_raster.tiff"
+fixed_min = 1.0
+fixed_max = 5.0
+normalize_raster(input_raster_path, output_normalized_raster_path, fixed_min, fixed_max) """
+
+
+def relabel_clusters(cluster_ranges):
+    """
+    Relabels clusters based on their weighted mean values from cluster ranges.
+    
+    Args:
+        cluster_ranges (list): A list of tuples containing (old_cluster_id, min_value, max_value, count)
+    
+    Returns:
+        dict: A mapping from old cluster IDs to new cluster IDs based on sorted weighted mean values
+    """
+    
+    # Calculate the mean and weighted mean for each cluster
+    weighted_means = []
+    means = []  # To store means for printing later
+    for old_cluster_id, min_value, max_value, count in cluster_ranges:
+        mean_value = (min_value + max_value) / 2  # Calculate mean of the range
+        weighted_mean = mean_value * count  # Weight mean by the count
+        means.append((old_cluster_id, mean_value, min_value, max_value, count))  # Store means for printing
+        weighted_means.append((old_cluster_id, weighted_mean, min_value, max_value, count))
+    
+    # Print the means before relabeling
+    print("Means for each cluster before relabeling:")
+    for (old_cluster_id, mean_value, min_value, max_value, count) in means:
+        print(f"Old Cluster {old_cluster_id}: Mean = {mean_value}, Min = {min_value}, Max = {max_value}, Count = {count}")
+    
+    # Sort clusters by their means (not weighted means for relabeling)
+    sorted_means = sorted(means, key=lambda x: x[1])  # Sort by mean value
+    
+    # Create a new mapping from old cluster IDs to new cluster IDs
+    new_labels = {}
+    for new_index, (old_cluster_id, mean_value, min_value, max_value, count) in enumerate(sorted_means):
+        new_cluster_id = new_index + 1  # New cluster IDs start from 1
+        new_labels[old_cluster_id] = new_cluster_id  # Map old cluster ID to new cluster ID
+        
+    print("\nCluster value ranges and reordering based on means:")
+    for (old_cluster_id, mean_value, min_value, max_value, count) in sorted_means:
+        new_cluster_id = new_labels[old_cluster_id]  # Get the new cluster ID
+        print(f"Old Cluster {old_cluster_id}: Min = {min_value}, Max = {max_value}, Count = {count} -> New Cluster {new_cluster_id}")
+
+    return new_labels
+
+def process_directory(input_directory, output_directory, n_clusters=None, process_single_file=False):
+    """
+    Processes all TIFF files in a directory or a single file if specified.
+    """
+        
+    os.makedirs(output_directory, exist_ok=True)
+
+    if process_single_file:
+        if os.path.isfile(input_directory):
+            print(f"Processing single file: {input_directory}")
+            clustered_raster, raster_meta, cluster_ranges = process_kmeans(input_directory, n_clusters)
+
+            # Relabel the clusters
+            new_labels = relabel_clusters(cluster_ranges)
+
+            # Create a relabelled raster using the new_labels mapping
+            relabelled_raster = np.copy(clustered_raster)
+            for old_label, new_label in new_labels.items():
+                relabelled_raster[clustered_raster == old_label] = new_label
+
+            new_output_raster = os.path.join(output_directory, os.path.basename(input_directory).replace('.tiff', '_relabelled.tiff'))
+
+            # Use rioxarray to save the raster
+            xr.DataArray(relabelled_raster, dims=("y", "x")) \
+                .rio.write_crs(raster_meta['crs'], inplace=True) \
+                .rio.write_transform(raster_meta['transform'], inplace=True) \
+                .rio.write_nodata(raster_meta['nodata'], inplace=True) \
+                .rio.to_raster(new_output_raster)
+
+            print(f"Relabeling output saved at {new_output_raster}")
+        else:
+            print(f"Error: {input_directory} is not a valid file.")
+    else:
+        for filename in os.listdir(input_directory):
+            if filename.endswith('.tiff') or filename.endswith('.tif'):
+                input_raster = os.path.join(input_directory, filename)
+                print(f"Processing {input_raster}")
+
+                # Process the raster
+                clustered_raster, raster_meta, cluster_ranges = process_kmeans(input_raster, n_clusters)
+
+                # Relabel the clusters
+                new_labels = relabel_clusters(cluster_ranges)
+
+                # Create a relabelled raster using the new_labels mapping
+                relabelled_raster = np.copy(clustered_raster)
+                for old_label, new_label in new_labels.items():
+                    relabelled_raster[clustered_raster == old_label] = new_label
+
+                new_output_raster = os.path.join(output_directory, filename.replace('.tiff', '_relabeled.tiff'))
+
+                xr.DataArray(relabelled_raster, dims=("y", "x")) \
+                    .rio.write_crs(raster_meta['crs'], inplace=True) \
+                    .rio.write_transform(raster_meta['transform'], inplace=True) \
+                    .rio.write_nodata(raster_meta['nodata'], inplace=True) \
+                    .rio.to_raster(new_output_raster)
+
+                print(f"Relabeling output saved at {new_output_raster}")
+
+def convert_raster_to_integers(input_tiff, output_tiff):
+    """
+    Converts raster values to integers and saves the output, preserving native NoData values.
+
+    :param input_tiff: Path for the input raster file
+    :param output_tiff: Path for the output raster file
+    :return: None
+    """
+    raster = rioxarray.open_rasterio(input_tiff)
+
+    # Get the native NoData value
+    nodata_value = raster.rio.nodata
+
+    float_raster = raster.round()
+
+    # Preserve native NoData values
+    int_raster = float_raster.where(float_raster != nodata_value, other=np.nan)
+
+    # Convert to int32, ensuring NoData remains as np.nan
+    int_raster = int_raster.where(~np.isnan(int_raster), other=np.nan).astype(np.float32)
+
+    # Write the native NoData value to the raster metadata
+    int_raster.rio.write_nodata(nodata_value, inplace=True)
+
+    int_raster.rio.to_raster(output_tiff)
+
+    print(f"Raster with integer dataype saved at {output_tiff}")
+
+def clip_raster_by_masks(input_raster_path, mask_input, output_folder):
+    """
+    Clips one or more raster files by one or more mask layers (either a single file or all files in a folder).
+    Saves the clipped rasters with filenames indicating the mask used.
+    
+    Args:
+        input_raster_path (str): Path to a single raster file or a folder containing multiple raster files.
+        mask_input (str): Path to a single mask file or folder containing multiple mask layers.
+        output_folder (str): Path to the folder to save clipped rasters.
+    
+    Returns:
+        None
+    """
+    os.makedirs(output_folder, exist_ok=True)
+    
+    if os.path.isdir(input_raster_path):
+        raster_files = [f for f in os.listdir(input_raster_path) if f.endswith((".tif", ".tiff"))]
+    elif os.path.isfile(input_raster_path) and input_raster_path.endswith((".tif", ".tiff")):
+        raster_files = [os.path.basename(input_raster_path)]
+    else:
+        print("Error: Invalid raster input. Please provide either a folder or a valid raster file.")
+        return
+    
+    if os.path.isdir(mask_input):
+        mask_files = [f for f in os.listdir(mask_input) if f.endswith((".shp", ".geojson"))]
+    elif os.path.isfile(mask_input) and mask_input.endswith((".shp", ".geojson")):
+        mask_files = [os.path.basename(mask_input)]
+    else:
+        print("Error: Invalid mask input. Please provide either a folder or a valid mask file.")
+        return
+
+    for raster_file in raster_files:
+        raster_path = os.path.join(input_raster_path, raster_file) if os.path.isdir(input_raster_path) else input_raster_path
+        input_raster_name = os.path.splitext(raster_file)[0]
+        
+        for mask_file in mask_files:
+            mask_path = os.path.join(mask_input, mask_file) if os.path.isdir(mask_input) else mask_input
+            mask_name = os.path.splitext(os.path.basename(mask_file))[0]
+            
+            mask_gdf = gpd.read_file(mask_path)
+            raster = rxr.open_rasterio(raster_path, masked=True)
+            
+            clipped_raster = raster.rio.clip(mask_gdf.geometry, mask_gdf.crs, drop=True)
+            
+            # Generate output path
+            output_file_name = f"{input_raster_name}_clipped_by_{mask_name}.tif"
+            output_raster_path = os.path.join(output_folder, output_file_name)
+            
+            # Save clipped raster
+            clipped_raster.rio.to_raster(output_raster_path)
+            print(f"Saved clipped raster to: {output_raster_path}")
+
+
+def clip_raster_to_reference_extent(ground_truth_path, prediction_path):
+    """Clips the ground truth raster to the extent of the predicted raster and ensures matching size."""
+    
+    with rasterio.open(prediction_path) as pred_src:
+        pred_extent = pred_src.bounds  
+        pred_box = box(*pred_extent) 
+    
+    with rasterio.open(ground_truth_path, 'r+') as gt_src:  
+        ground_truth, _ = mask(gt_src, [pred_box], crop=True)
+        
+        # Get the dimensions of the predicted raster
+        pred_width = pred_src.width
+        pred_height = pred_src.height
+
+        # Ensure that the ground truth raster has the same dimensions as the predicted raster
+        if ground_truth.shape[1] != pred_height or ground_truth.shape[2] != pred_width:
+            # Resize the ground truth to match the predicted raster size
+            ground_truth_resized = np.resize(ground_truth, (ground_truth.shape[0], pred_height, pred_width))
+        else:
+            ground_truth_resized = ground_truth
+
+        # Update the metadata for the clipped ground truth
+        clipped_gt_meta = gt_src.meta.copy()
+        clipped_gt_meta.update({
+            'height': ground_truth_resized.shape[1], 
+            'width': ground_truth_resized.shape[2],  
+            'transform': pred_src.transform  
+        })
+
+        with rasterio.open(ground_truth_path, 'w', **clipped_gt_meta) as out_src:
+            out_src.write(ground_truth_resized)
+
+    print(f"Ground truth raster clipped and saved to {ground_truth_path}")
+
+    return ground_truth_resized, clipped_gt_meta

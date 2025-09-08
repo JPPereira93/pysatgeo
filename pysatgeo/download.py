@@ -5,6 +5,7 @@ Download-related utilities for pysatgeo.
 import requests
 import zipfile
 import os
+import time
 
 def download_file(url, save_dir):
     local_filename = os.path.join(save_dir, url.split('/')[-1])
