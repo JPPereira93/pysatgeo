@@ -2,7 +2,7 @@
 
 __author__ = "Joao Pereira"
 __email__ = "joaopmpereira93@gmail.com"
-__version__ = "0.2.0"   # bump this whenever you release a new version
+__version__ = "0.2.1"   # bump this whenever you release a new version
 
 
 from .raster import *
