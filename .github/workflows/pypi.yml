@@ -6,11 +6,7 @@ name: pypi
 on:
   push:
     tags:
-      - "*.*.*"   # since you removed the "v" prefix from tags
-
-permissions:
-  contents: write
-  id-token: write
+      - "*.*.*"
 
 jobs:
   deploy:
