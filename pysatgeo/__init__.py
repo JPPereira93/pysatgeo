@@ -5,10 +5,10 @@ __email__ = "joaopmpereira93@gmail.com"
 __version__ = "0.2.3"   # bump this whenever you release a new version
 
 
-from .raster import *
-from .vector import *
-from .download import *
-from .gee import *
-from .lidar import *
-from .netcdf import *
-from .common import *
+from . import raster
+from . import vector
+from . import download
+from . import gee
+from . import lidar
+from . import netcdf
+from . import common
