@@ -13,6 +13,7 @@ import os
 from mapclassify import NaturalBreaks
 import subprocess
 from osgeo import gdal
+import xarray as xr
 
 def reproject_clip_resample_tiff(input_tiff=None, output_tiff=None, aoi_shapefile=None, target_srs=None, target_res_x=None, target_res_y=None, resampling_method=None, clip=False, clip_by_extent=False, no_data=None):
     """
