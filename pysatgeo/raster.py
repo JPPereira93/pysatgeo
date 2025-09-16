@@ -12,8 +12,9 @@ import matplotlib.pyplot as plt
 import os
 from mapclassify import NaturalBreaks
 import subprocess
+from osgeo import gdal
 
-def reproject_clip_resample_tiff(input_tiff, output_tiff=None, aoi_shapefile=None, target_srs=None, target_res_x=None, target_res_y=None, resampling_method=None, clip=False, clip_by_extent=False, no_data=None):
+def reproject_clip_resample_tiff(input_tiff=None, output_tiff=None, aoi_shapefile=None, target_srs=None, target_res_x=None, target_res_y=None, resampling_method=None, clip=False, clip_by_extent=False, no_data=None):
     """
     Reprojects, optionally clips, and resamples a TIFF file based on an AOI shapefile.
 
