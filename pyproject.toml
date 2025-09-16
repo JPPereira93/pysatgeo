@@ -1,6 +1,6 @@
 [project]
 name = "pysatgeo"
-version = "0.3.2"
+version = "0.3.3"
 dynamic = [
     "dependencies",
 ]
@@ -52,7 +52,7 @@ universal = true
 
 
 [tool.bumpversion]
-current_version = "0.3.2"
+current_version = "0.3.3"
 commit = true
 tag = true
 
