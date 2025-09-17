@@ -515,59 +515,67 @@ def remove_outliers(input_tiff, output_tiff, no_data_value=-9999):
 
     return {"input_tiff": input_tiff, "output_tiff": output_tiff}
 
-def process_kmeans(input_raster, n_clusters=None):
+def process_kmeans(input_raster, n_clusters=None, verbose=True):
+    """
+    Processes a single raster file and applies K-means clustering.
+    Use plot_silhouette_scores and process_raster_for_silhouette to define n_clusters.
     
-    """Processes a single raster file and applies K-means clustering.
-    Use plot_silhouette_scores and process_raster_for_silhouette to define n_clusters
+    Parameters
+    ----------
+    input_raster : str
+        Path to the raster file (.tif/.tiff).
+    n_clusters : int
+        Number of clusters for KMeans.
+    verbose : bool, default=True
+        If True, print cluster stats. If False, suppress logs.
     """
     
     with rasterio.open(input_raster) as src:
-        raster_data = src.read(1)  
-        raster_meta = src.meta  
+        raster_data = src.read(1)
+        raster_meta = src.meta
         nodata_value = src.nodata
 
-    # Prepare the data (flatten the 2D raster into a 1D array)
+    # Flatten raster and filter NoData
     raster_flat = raster_data.flatten()
-    raster_valid = raster_flat[raster_flat != nodata_value]  # Remove NoData values
+    raster_valid = raster_flat[raster_flat != nodata_value]
 
     if np.any(np.isnan(raster_valid)):
-        print("Warning: NaN values detected in raster_valid. They will be removed.")
-    
-    # Apply K-means clustering
-    raster_valid = raster_valid.reshape(-1, 1)  # Reshape to 2D (required by KMeans)
+        if verbose:
+            print("Warning: NaN values detected in raster_valid. They will be removed.")
 
-    # Only fit KMeans if there are valid data points
     if raster_valid.shape[0] == 0:
         raise ValueError("No valid data points found for clustering.")
 
+    # Reshape for KMeans
+    raster_valid = raster_valid.reshape(-1, 1)
+
+    # Apply KMeans
     kmeans = KMeans(n_clusters=n_clusters, random_state=42)
     kmeans.fit(raster_valid)
-
-    # Get the cluster labels
     cluster_labels = kmeans.labels_
 
-    # Prepare to extract cluster value ranges
+    # Compute cluster stats
     cluster_ranges = []
-    
+    if verbose:
+        print("Cluster stats (based on means):")
     for cluster in range(n_clusters):
-        # Get the values for this cluster
         cluster_values = raster_valid[cluster_labels == cluster]
         if cluster_values.size > 0:
-            cluster_min = cluster_values.min()
-            cluster_max = cluster_values.max()
+            cluster_mean = cluster_values.mean()
             cluster_count = cluster_values.size
-            cluster_ranges.append((cluster + 1, cluster_min, cluster_max, cluster_count))
+            cluster_ranges.append(
+                (cluster + 1, float(cluster_mean), cluster_count)
+            )
+            if verbose:
+                print(f"Cluster {cluster+1}: mean={cluster_mean:.3f}, count={cluster_count:,}")
 
-    print("Cluster value ranges:")
-    for old_cluster, min_val, max_val, count in cluster_ranges:
-        print(f"Cluster {old_cluster}: Min = {min_val}, Max = {max_val}, Count = {count}")
-
-    # Reassign cluster labels to the original raster shape
+    # Rebuild raster with cluster labels
     clustered_raster = np.full_like(raster_flat, fill_value=nodata_value)
     clustered_raster[raster_flat != nodata_value] = cluster_labels + 1
     clustered_raster = clustered_raster.reshape(raster_data.shape)
 
-    return clustered_raster, raster_meta, cluster_ranges 
+    return clustered_raster, raster_meta, cluster_ranges
+
 
 def convert_hgt_to_tiff(hgt_file, tiff_file):
 
@@ -1295,49 +1303,57 @@ normalize_raster(input_raster_path, output_normalized_raster_path, fixed_min, fi
 
 def relabel_clusters(cluster_ranges):
     """
-    Relabels clusters based on their weighted mean values from cluster ranges.
-    
+    Relabel clusters based on their mean values.
+
     Args:
-        cluster_ranges (list): A list of tuples containing (old_cluster_id, min_value, max_value, count)
-    
+        cluster_ranges (list): A list of tuples containing
+                               (old_cluster_id, mean_value, count)
+
     Returns:
-        dict: A mapping from old cluster IDs to new cluster IDs based on sorted weighted mean values
+        dict: A mapping from old cluster IDs to new cluster IDs
+              based on sorted mean values.
     """
-    
-    # Calculate the mean and weighted mean for each cluster
-    weighted_means = []
-    means = []  # To store means for printing later
-    for old_cluster_id, min_value, max_value, count in cluster_ranges:
-        mean_value = (min_value + max_value) / 2  # Calculate mean of the range
-        weighted_mean = mean_value * count  # Weight mean by the count
-        means.append((old_cluster_id, mean_value, min_value, max_value, count))  # Store means for printing
-        weighted_means.append((old_cluster_id, weighted_mean, min_value, max_value, count))
-    
-    # Print the means before relabeling
+
+    # Print means before relabeling
     print("Means for each cluster before relabeling:")
-    for (old_cluster_id, mean_value, min_value, max_value, count) in means:
-        print(f"Old Cluster {old_cluster_id}: Mean = {mean_value}, Min = {min_value}, Max = {max_value}, Count = {count}")
-    
-    # Sort clusters by their means (not weighted means for relabeling)
-    sorted_means = sorted(means, key=lambda x: x[1])  # Sort by mean value
-    
-    # Create a new mapping from old cluster IDs to new cluster IDs
+    for old_cluster_id, mean_value, count in cluster_ranges:
+        print(f"Old Cluster {old_cluster_id}: mean={mean_value:.3f}, count={count:,}")
+
+    # Sort clusters by mean value
+    sorted_means = sorted(cluster_ranges, key=lambda x: x[1])
+
+    # Create new labels mapping
     new_labels = {}
-    for new_index, (old_cluster_id, mean_value, min_value, max_value, count) in enumerate(sorted_means):
-        new_cluster_id = new_index + 1  # New cluster IDs start from 1
-        new_labels[old_cluster_id] = new_cluster_id  # Map old cluster ID to new cluster ID
-        
-    print("\nCluster value ranges and reordering based on means:")
-    for (old_cluster_id, mean_value, min_value, max_value, count) in sorted_means:
-        new_cluster_id = new_labels[old_cluster_id]  # Get the new cluster ID
-        print(f"Old Cluster {old_cluster_id}: Min = {min_value}, Max = {max_value}, Count = {count} -> New Cluster {new_cluster_id}")
+    for new_index, (old_cluster_id, mean_value, count) in enumerate(sorted_means):
+        new_labels[old_cluster_id] = new_index + 1
+
+    # Print reordering
+    print("\nCluster reordering based on means:")
+    for old_cluster_id, mean_value, count in sorted_means:
+        print(f"Old Cluster {old_cluster_id}: mean={mean_value:.3f}, count={count:,} -> New Cluster {new_labels[old_cluster_id]}")
 
     return new_labels
 
-def process_directory(input_directory, output_directory, n_clusters=None, process_single_file=False):
+
+def kmeans_relabel(input_directory, output_directory, n_clusters=None, process_single_file=False):
     """
-    Processes all TIFF files in a directory or a single file if specified.
+    Apply KMeans clustering to one or more raster TIFF files, relabel clusters 
+    by ascending mean values, and save new relabeled rasters.
+
+    Parameters
+    ----------
+    input_directory : str
+        Path to a directory of .tif/.tiff rasters or a single raster file 
+        (if process_single_file=True).
+    output_directory : str
+        Path where relabeled rasters will be saved.
+    n_clusters : int, optional
+        Number of KMeans clusters to compute (default: None, usually set 
+        from silhouette score analysis).
+    process_single_file : bool, default=False
+        If True, treat input_directory as a single raster file path instead of a folder.
     """
+
         
     os.makedirs(output_directory, exist_ok=True)
 
