@@ -8,6 +8,7 @@ import numpy as np
 import geopandas as gpd
 from rasterio.mask import mask
 from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 import matplotlib.pyplot as plt
 import os
 from mapclassify import NaturalBreaks
