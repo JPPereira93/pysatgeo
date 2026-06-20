@@ -1,4 +1,0 @@
-
-# pysatgeo module
-
-::: pysatgeo.pysatgeo
