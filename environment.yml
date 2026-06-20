@@ -4,17 +4,19 @@ channels:
 dependencies:
   - python=3.11
   - pip
-  - gdal        # install GDAL from conda-forge (much easier than pip)
+  - gdal
   - rasterio
   - rioxarray
   - geopandas
   - shapely
+  - xarray
+  - pyarrow
   - scikit-learn
   - matplotlib
   - mapclassify
   - scipy
   - pandas
   - numpy
-  - requests
+  - pytest
   - pip:
-      - pysatgeo   # install your package from PyPI
+      - -r requirements_dev.txt

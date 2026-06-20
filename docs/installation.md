@@ -1,21 +1,40 @@
 # Installation
 
-## Stable release
+## PyPI Install
 
-To install pysatgeo, run this command in your terminal:
+To install the latest published release:
 
-```
+```powershell
 pip install pysatgeo
 ```
 
-This is the preferred method to install pysatgeo, as it will always install the most recent stable release.
+## Conda Environment For Geospatial Work
 
-If you don't have [pip](https://pip.pypa.io) installed, this [Python installation guide](http://docs.python-guide.org/en/latest/starting/installation/) can guide you through the process.
+Because geospatial dependencies can be tricky, especially on Windows, Conda is
+often the most reliable setup:
 
-## From sources
-
-To install pysatgeo from sources, run this command in your terminal:
-
+```powershell
+conda create -n pysatgeo python=3.11 -y
+conda activate pysatgeo
+conda install -c conda-forge geopandas rasterio rioxarray gdal pyarrow shapely xarray scikit-learn matplotlib mapclassify scipy pytest -y
+pip install pysatgeo
 ```
-pip install git+https://github.com/JPPereira93/pysatgeo
+
+## Install From Source
+
+If you are working on the repository itself:
+
+```powershell
+git clone https://github.com/JPPereira93/pysatgeo.git
+cd pysatgeo
+pip install -r requirements.txt
+pip install -e .
+```
+
+## Development Extras
+
+To build docs, run checks, or work on the package locally:
+
+```powershell
+pip install -r requirements_dev.txt
 ```

@@ -1,0 +1,3 @@
+# sampling module
+
+::: pysatgeo.sampling

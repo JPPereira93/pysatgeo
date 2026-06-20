@@ -1,0 +1,3 @@
+# netcdf module
+
+::: pysatgeo.netcdf

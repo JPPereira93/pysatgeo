@@ -1,0 +1,3 @@
+# gee module
+
+::: pysatgeo.gee

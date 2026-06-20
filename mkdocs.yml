@@ -1,5 +1,5 @@
 site_name: pysatgeo
-site_description: Python package for satellite processing functions for raster and also vector
+site_description: Python package for raster and vector geospatial processing
 site_author: JPPereira93
 site_url: https://JPPereira93.github.io/pysatgeo
 repo_url: https://github.com/JPPereira93/pysatgeo
@@ -9,8 +9,6 @@ copyright: "Copyright &copy; 2024 - 2024 Joao Pereira"
 theme:
     palette:
         - scheme: default
-          #   primary: blue
-          #   accent: indigo
           toggle:
               icon: material/toggle-switch-off-outline
               name: Switch to dark mode
@@ -23,8 +21,6 @@ theme:
     name: material
     icon:
         repo: fontawesome/brands/github
-    # logo: assets/logo.png
-    # favicon: assets/favicon.png
     features:
         - navigation.instant
         - navigation.tracking
@@ -43,7 +39,6 @@ plugins:
     - git-revision-date-localized:
           enable_creation_date: true
           type: timeago
-    # - pdf-export
     - mkdocs-jupyter:
           include_source: True
           ignore_h1_titles: True
@@ -66,18 +61,10 @@ markdown_extensions:
     - toc:
           permalink: true
 
-# extra:
-#     analytics:
-#         provider: google
-#         property: UA-XXXXXXXXX-X
-
 nav:
     - Home: index.md
     - Installation: installation.md
     - Usage: usage.md
-    - Contributing: contributing.md
-    - FAQ: faq.md
-    - Changelog: changelog.md
     - Report Issues: https://github.com/JPPereira93/pysatgeo/issues
     - Examples:
         - examples/intro.ipynb
@@ -85,3 +72,10 @@ nav:
           - pysatgeo module: pysatgeo.md
           - raster module: raster.md
           - vector module: vector.md
+          - raster_analysis module: raster_analysis.md
+          - terrain module: terrain.md
+          - sampling module: sampling.md
+          - ranking module: ranking.md
+          - styles module: styles.md
+          - netcdf module: netcdf.md
+          - gee module: gee.md

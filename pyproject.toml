@@ -1,6 +1,6 @@
 [project]
 name = "pysatgeo"
-version = "0.4.3"
+version = "1.0.0"
 dynamic = [
     "dependencies",
 ]
@@ -42,7 +42,7 @@ exclude = ["docs*"]
 dependencies = {file = ["requirements.txt"]}
 
 [tool.bumpversion]
-current_version = "0.4.3"
+current_version = "1.0.0"
 commit = true
 tag = true
 

@@ -1,0 +1,3 @@
+# ranking module
+
+::: pysatgeo.ranking

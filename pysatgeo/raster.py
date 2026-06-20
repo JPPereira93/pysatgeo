@@ -1,13 +1,18 @@
-"""
-Raster-related functions for pysatgeo.
-"""
+"""Raster processing utilities for pysatgeo."""
 
-import rioxarray
-import numpy as np
-import geopandas as gpd
 import os
+import glob
 import subprocess
+import sys
+
+import geopandas as gpd
+import numpy as np
+import rasterio
+import rioxarray
 import xarray as xr
+from rasterio.crs import CRS
+from rasterio.mask import mask
+from shapely.geometry import box
 
 
 def _output_path_with_suffix(input_path, suffix):
@@ -19,6 +24,15 @@ def _output_path_with_suffix(input_path, suffix):
 def _run_command(command):
     """Run a GDAL command and fail loudly when it does not succeed."""
     subprocess.run(command, check=True)
+
+
+def _find_script_on_path(script_name):
+    """Return the first matching GDAL helper script found on PATH."""
+    for path_dir in os.environ["PATH"].split(os.pathsep):
+        candidate = os.path.join(path_dir, script_name)
+        if os.path.exists(candidate):
+            return candidate
+    raise FileNotFoundError(f"{script_name} not found in PATH")
 
 
 def _require_gdal():
@@ -33,25 +47,22 @@ def _require_gdal():
     return gdal
 
 
-def reproject_clip_resample_tiff(input_tiff=None, output_tiff=None, aoi_shapefile=None, target_srs=None, target_res_x=None, target_res_y=None, resampling_method=None, clip=False, clip_by_extent=False, no_data=None):
-    """
-    Reprojects, optionally clips, and resamples a TIFF file based on an AOI shapefile.
-
-    :param input_tiff: Path to the input TIFF file
-    :param output_tiff: Path for the output TIFF file
-    :param aoi_shapefile: Optional path to the AOI shapefile or GeoDataFrame. Required if clip is True.
-    :param target_srs: Optional target spatial reference system (ex: 'EPSG:32629')
-    :param target_res_x: Optional target resolution in x (meters)
-    :param target_res_y: Optional target resolution in y (meters)
-    :param resampling_method: Optional resampling method (ex: 'bilinear')
-    :param clip: Boolean to determine whether to clip the raster
-    :param clip_by_extent: Boolean to determine whether to clip the raster by the extent of the AOI.
-    :param no_data: Optional no data value to be set for the output TIFF
-    """
+def reproject_clip_resample_tiff(
+    input_tiff=None,
+    output_tiff=None,
+    aoi_shapefile=None,
+    target_srs=None,
+    target_res_x=None,
+    target_res_y=None,
+    resampling_method=None,
+    clip=False,
+    clip_by_extent=False,
+    no_data=None,
+):
+    """Reproject, optionally clip, and resample a raster with `gdalwarp`."""
     if not input_tiff:
         raise ValueError("input_tiff must be provided")
 
-    # Check if the output TIFF path is given, otherwise create a new one based on the input TIFF
     if not output_tiff:
         base, ext = os.path.splitext(input_tiff)
         output_tiff = f"{base}_new.tif"
@@ -65,7 +76,7 @@ def reproject_clip_resample_tiff(input_tiff=None, output_tiff=None, aoi_shapefil
     if resampling_method:
         cmd_reproject.extend(["-r", str(resampling_method)])
     if clip:
-        if aoi_shapefile:
+        if aoi_shapefile is not None:
             if clip_by_extent:
                 # Extract the extent if it is a GeoDataFrame or load it from a shapefile
                 if isinstance(aoi_shapefile, gpd.geodataframe.GeoDataFrame):
@@ -90,51 +101,17 @@ def reproject_clip_resample_tiff(input_tiff=None, output_tiff=None, aoi_shapefil
     _run_command(cmd_reproject)
     return output_tiff
 
-# Example usage:
-# reproject_clip_resample_tiff(
-#     input_tiff="path/to/your/input_raster.tif",
-#     output_tiff="path/to/your/output_raster.tif",
-#     aoi_shapefile="path/to/your/aoi_shapefile.shp",
-#     target_srs="EPSG:32629",
-#     target_res_x=30,
-#     target_res_y=30,
-#     resampling_method="bilinear",
-#     clip=True,
-#     clip_by_extent=True,
-#     no_data=-9999,
-# )
 
-
-def align_rasters(rasters, source_path, output_suffix, folder_name='Aligned'):
-    """
-    Aligns list of rasters to have the same resolution and 
-    cell size for pixel-based calculations. Saves aligned rasters in a specified folder.
-    
-    :param rasters: List of raster paths.
-    :type rasters: List
-    :param source_path: Path to the source directory of rasters.
-    :type source_path: String
-    :param output_suffix: The output aligned rasters files suffix with extension.
-    :type output_suffix: String
-    :param folder_name: Name of the folder to save aligned rasters, defaults to 'Aligned'.
-    :type folder_name: String
-    :return: True if the process runs and False if the data couldn't be read. 
-    :rtype: Boolean
-    """
+def align_rasters(rasters, source_path, output_suffix, folder_name="Aligned"):
+    """Align raster files to the grid of the first raster and save them together."""
     if not rasters:
         return False
 
     gdal = _require_gdal()
-
-    # Calculate the parent directory of source_path
     parent_dir = os.path.dirname(source_path.rstrip(os.sep))
-    
-    # Construct the path to the specified folder
     aligned_dir = os.path.join(parent_dir, folder_name)
-    
-    # Check if the folder exists, if not, create it
     os.makedirs(aligned_dir, exist_ok=True)
-    
+
     command = ["gdalbuildvrt", "-te"]
     hDataset = gdal.Open(rasters[0], gdal.GA_ReadOnly)
     if hDataset is None:
@@ -143,22 +120,27 @@ def align_rasters(rasters, source_path, output_suffix, folder_name='Aligned'):
     adfGeoTransform = hDataset.GetGeoTransform(can_return_null=True)
     if adfGeoTransform is None:
         return False
-    
-    # Process each raster in the list
+
     for tif_file in rasters:
         base_filename = os.path.basename(tif_file)
         raster_stem = os.path.splitext(base_filename)[0]
         vrt_file = os.path.join(aligned_dir, f"{raster_stem}.vrt")
 
-        # Calculate the corners of the bounding box for each raster
-        dfGeoXUL = adfGeoTransform[0]  # Upper left X
-        dfGeoYUL = adfGeoTransform[3]  # Upper left Y
-        dfGeoXLR = adfGeoTransform[0] + adfGeoTransform[1] * hDataset.RasterXSize + adfGeoTransform[2] * hDataset.RasterYSize  # Lower right X
-        dfGeoYLR = adfGeoTransform[3] + adfGeoTransform[4] * hDataset.RasterXSize + adfGeoTransform[5] * hDataset.RasterYSize  # Lower right Y
+        dfGeoXUL = adfGeoTransform[0]
+        dfGeoYUL = adfGeoTransform[3]
+        dfGeoXLR = (
+            adfGeoTransform[0]
+            + adfGeoTransform[1] * hDataset.RasterXSize
+            + adfGeoTransform[2] * hDataset.RasterYSize
+        )
+        dfGeoYLR = (
+            adfGeoTransform[3]
+            + adfGeoTransform[4] * hDataset.RasterXSize
+            + adfGeoTransform[5] * hDataset.RasterYSize
+        )
         xres = str(abs(adfGeoTransform[1]))
         yres = str(abs(adfGeoTransform[5]))
-        
-        # Build and translate VRT to final raster with specified resolution
+
         _run_command(
             command
             + [
@@ -179,41 +161,25 @@ def align_rasters(rasters, source_path, output_suffix, folder_name='Aligned'):
             aligned_dir, _output_path_with_suffix(base_filename, output_suffix)
         )
         _run_command(["gdal_translate", "-q", vrt_file, output_file])
-        os.remove(vrt_file)  # Clean up temporary VRT file
-    
+        os.remove(vrt_file)
+
     return True
 
-# Example usage:
-# rasters = ["path/to/raster1.tif", "path/to/raster2.tif"]
-# output_suffix = "_aligned.tif"
-# align_rasters(rasters, "/path/to/source", output_suffix, "Aligned_8_5")
 
-    
 def align_rasters_in_place(folder_path, output_suffix):
-    """
-    Aligns all .tiff files in the specified folder to have the same resolution and 
-    cell size for pixel-based calculations. Saves aligned rasters in the same folder.
-    
-    :param folder_path: Path to the folder containing .tiff files.
-    :type folder_path: String
-    :param output_suffix: The output aligned rasters files suffix with extension.
-    :type output_suffix: String
-    :return: True if the process runs and False if the data couldn't be read. 
-    :rtype: Boolean
-    """
-    # List all .tiff files in the folder
+    """Align all TIFF files in a folder and write the outputs beside the inputs."""
     rasters = [
         os.path.join(folder_path, filename)
         for filename in os.listdir(folder_path)
         if filename.endswith(".tiff") or filename.endswith(".tif")
     ]
-    
+
     if not rasters:
         print("No .tiff files found in the specified folder.")
         return False
 
     gdal = _require_gdal()
-    
+
     command = ["gdalbuildvrt", "-te"]
     hDataset = gdal.Open(rasters[0], gdal.GA_ReadOnly)
     if hDataset is None:
@@ -222,22 +188,27 @@ def align_rasters_in_place(folder_path, output_suffix):
     adfGeoTransform = hDataset.GetGeoTransform(can_return_null=True)
     if adfGeoTransform is None:
         return False
-    
-    # Process each raster in the list
+
     for tif_file in rasters:
         base_filename = os.path.basename(tif_file)
         raster_stem = os.path.splitext(base_filename)[0]
         vrt_file = os.path.join(folder_path, f"{raster_stem}.vrt")
 
-        # Calculate the corners of the bounding box for each raster
-        dfGeoXUL = adfGeoTransform[0]  # Upper left X
-        dfGeoYUL = adfGeoTransform[3]  # Upper left Y
-        dfGeoXLR = adfGeoTransform[0] + adfGeoTransform[1] * hDataset.RasterXSize + adfGeoTransform[2] * hDataset.RasterYSize  # Lower right X
-        dfGeoYLR = adfGeoTransform[3] + adfGeoTransform[4] * hDataset.RasterXSize + adfGeoTransform[5] * hDataset.RasterYSize  # Lower right Y
+        dfGeoXUL = adfGeoTransform[0]
+        dfGeoYUL = adfGeoTransform[3]
+        dfGeoXLR = (
+            adfGeoTransform[0]
+            + adfGeoTransform[1] * hDataset.RasterXSize
+            + adfGeoTransform[2] * hDataset.RasterYSize
+        )
+        dfGeoYLR = (
+            adfGeoTransform[3]
+            + adfGeoTransform[4] * hDataset.RasterXSize
+            + adfGeoTransform[5] * hDataset.RasterYSize
+        )
         xres = str(abs(adfGeoTransform[1]))
         yres = str(abs(adfGeoTransform[5]))
-        
-        # Build and translate VRT to final raster with specified resolution
+
         _run_command(
             command
             + [
@@ -258,27 +229,15 @@ def align_rasters_in_place(folder_path, output_suffix):
             folder_path, _output_path_with_suffix(base_filename, output_suffix)
         )
         _run_command(["gdal_translate", "-q", vrt_file, output_file])
-        os.remove(vrt_file)  # Clean up temporary VRT file
-    
+        os.remove(vrt_file)
+
     return True
 
-# Example usage:
-# align_rasters_in_place("E:\\Spotlite_JPereira\\Ascendi\\Concessao_Beira_Litoral\\2030\\Aligned", "_aligned.tif")    
 
-
-
-def stack_rasters(tiff_files, output_tiff, aoi_shapefile=None, chunk_size=None, operation=None):
-    """
-    Clips, stacks a list of raster files based on an AOI shapefile, calculates the sum, median, or mean of the stack,
-    and saves the resulting raster to a file. Processes data in chunks to reduce memory usage.
-
-    :param tiff_files: List of paths to the input TIFF files
-    :param aoi_shapefile: Path to the AOI shapefile (optional, default is None)
-    :param output_tiff: Path for the output raster file
-    :param operation: Operation to perform on the stack ('mean', 'sum')
-    :param chunk_size: Size of chunks for processing (e.g., (500, 500))
-    :return: None
-    """
+def stack_rasters(
+    tiff_files, output_tiff, aoi_shapefile=None, chunk_size=None, operation=None
+):
+    """Clip and stack rasters, then aggregate them with a mean or sum."""
     if not tiff_files:
         raise ValueError("tiff_files must contain at least one raster path")
 
@@ -295,28 +254,25 @@ def stack_rasters(tiff_files, output_tiff, aoi_shapefile=None, chunk_size=None, 
 
     raster_arrays = []
     no_data_values = []
-    scale_factors = []  # List to hold scaling factors
+    scale_factors = []
 
     for tiff in tiff_files:
         ds = gdal.Open(tiff)
         if ds is None:
             raise ValueError(f"Could not open raster: {tiff}")
-        
-        # Get the scale
+
         scale = ds.GetRasterBand(1).GetScale()
         if scale is None:
-            scale = 1.0  # Default scale if none is found
+            scale = 1.0
         scale_factors.append(scale)
 
-        # Open the raster and convert to float32
-        raster = rioxarray.open_rasterio(tiff, chunks=chunk_size).astype('float32')
+        raster = rioxarray.open_rasterio(tiff, chunks=chunk_size).astype("float32")
         print(f"Starting the processing... {tiff}")
         no_data = raster.rio.nodata
         no_data_values.append(no_data)
 
-        # Check if 'time' dimension is present and remove it
-        if 'time' in raster.dims:
-            raster = raster.squeeze(dim='time', drop=True)
+        if "time" in raster.dims:
+            raster = raster.squeeze(dim="time", drop=True)
 
         try:
             if polygon_geometry:
@@ -333,50 +289,335 @@ def stack_rasters(tiff_files, output_tiff, aoi_shapefile=None, chunk_size=None, 
 
             raster_arrays.append(processed_raster.load())
         finally:
-            # Ensure the file is closed after processing
             raster.close()
-            ds = None  
+            ds = None
 
-    # Stack the rasters across bands
-    stacked_rasters = xr.concat(raster_arrays, dim='band')
+    stacked_rasters = xr.concat(raster_arrays, dim="band")
 
-    if operation == 'mean':
-        # Exclude NoData pixels from the mean calculation
-        result_raster = stacked_rasters.where(~np.isnan(stacked_rasters)).mean(dim='band')
+    if operation == "mean":
+        result_raster = stacked_rasters.where(~np.isnan(stacked_rasters)).mean(
+            dim="band"
+        )
 
-        # Adjust the mean raster based on the scale factor
         average_scale = np.mean(scale_factors)
         if average_scale != 1.0:
             result_raster = result_raster * average_scale
 
-    elif operation == 'sum':
-        # Exclude NoData pixels from the sum calculation
-        result_raster = stacked_rasters.where(~np.isnan(stacked_rasters)).sum(dim='band')
+    elif operation == "sum":
+        result_raster = stacked_rasters.where(~np.isnan(stacked_rasters)).sum(
+            dim="band"
+        )
 
-        # Adjust the sum raster based on the scale factor
-        total_scale = np.mean(scale_factors)  # You can modify this as needed
+        total_scale = np.mean(scale_factors)
         if total_scale != 1.0:
             result_raster = result_raster * total_scale
 
-    # Set the CRS of the result raster to match the vector CRS if AOI is provided
     if aoi_shapefile:
         result_raster.rio.write_crs(aoi.crs, inplace=True)
 
-    # Set the NoData value for the result raster to the NoData of the first raster
     result_no_data_value = no_data_values[0]
     result_raster.rio.write_nodata(result_no_data_value, inplace=True)
 
-    # Replace remaining NaN values with NoData in the result
-    result_raster = result_raster.where(~np.isnan(result_raster), other=result_no_data_value)
+    result_raster = result_raster.where(
+        ~np.isnan(result_raster), other=result_no_data_value
+    )
     result_raster.rio.to_raster(output_tiff)
     print(f"Stacked {operation} Raster saved at {output_tiff}")
 
     return output_tiff
 
-# Example usage:
-# tiff_files = [...]
-# output_tiff = "path/to/sum_raster.tif"
-# aoi_shapefile = "path/to/aoi.geojson"
-# chunk_size = (500, 500)
-# stack_rasters(tiff_files, output_tiff, aoi_shapefile, chunk_size, operation="sum")
+
+def ssm_nan_fix(raster_dir):
+    """Fix SSM rasters by capping values and applying the expected scale factor."""
+    gdal = _require_gdal()
+
+    for filename in os.listdir(raster_dir):
+        if filename.endswith(".tiff"):
+            tiff_path = os.path.join(raster_dir, filename)
+            dataset = gdal.Open(tiff_path, gdal.GA_Update)
+            if dataset is None:
+                continue
+
+            raster_array = dataset.ReadAsArray()
+            raster_array[raster_array > 200] = 255
+            raster_array = raster_array.astype(float)
+            raster_array[raster_array != 255] /= 2
+            dataset.GetRasterBand(1).WriteArray(raster_array)
+            dataset = None
+
+    return True
+
+
+def assign_crs(input_tiffs, crs):
+    """Assign a CRS to one raster path or a list of raster paths."""
+    if not isinstance(input_tiffs, list):
+        input_tiffs = [input_tiffs]
+
+    outputs = []
+    for tiff in input_tiffs:
+        with rasterio.open(tiff) as src:
+            profile = src.profile
+            profile.update(crs=CRS.from_epsg(crs))
+            data = src.read(1)
+            output_file = os.path.splitext(tiff)[0] + f"_epsg{crs}.tif"
+
+            with rasterio.open(output_file, "w", **profile) as dst:
+                dst.write(data, 1)
+
+        os.remove(tiff)
+        os.rename(output_file, tiff)
+        outputs.append(tiff)
+
+    return outputs
+
+
+def clip_raster_all_pixels(raster_path, vector_path, output_path, all_touched=True):
+    """Clip a raster while including every pixel touched by the mask geometry."""
+    vector_data = gpd.read_file(vector_path)
+
+    with rasterio.open(raster_path) as src:
+        out_image, out_transform = mask(
+            src, vector_data.geometry, crop=True, all_touched=all_touched
+        )
+        out_meta = src.meta.copy()
+
+    out_meta.update(
+        {
+            "driver": "GTiff",
+            "height": out_image.shape[1],
+            "width": out_image.shape[2],
+            "transform": out_transform,
+        }
+    )
+
+    with rasterio.open(output_path, "w", **out_meta) as dest:
+        dest.write(out_image)
+
+    return output_path
+
+
+def split_raster_bands(file_path, directory_path):
+    """Split a multiband raster into separate single-band rasters."""
+    output_paths = []
+    with rasterio.open(file_path, "r+") as src:
+        src.nodata = 0
+        for band_idx in range(1, src.count + 1):
+            band_data = src.read(band_idx)
+            output_tiff_name = (
+                f"{os.path.splitext(os.path.basename(file_path))[0]}_B{band_idx}.tif"
+            )
+            output_tiff_path = os.path.join(directory_path, output_tiff_name)
+
+            profile = src.profile
+            profile.update(count=1, dtype=rasterio.float64)
+
+            with rasterio.open(output_tiff_path, "w", **profile) as dst:
+                dst.write(band_data, 1)
+
+            output_paths.append(output_tiff_path)
+
+    return output_paths
+
+
+def merge_tiffs(input_dir, output_tif):
+    """Merge all TIFF files in a directory into one output raster."""
+    gdal = _require_gdal()
+    tiff_files = glob.glob(os.path.join(input_dir, "*.tif"))
+    if not tiff_files:
+        return None
+
+    vrt = gdal.BuildVRT("temp.vrt", tiff_files)
+    gdal.Translate(output_tif, vrt)
+    vrt = None
+    return output_tif
+
+
+def subset_raster_into_parts(input_raster, num_parts):
+    """Divide a raster into vertically stacked equal parts."""
+    gdal = _require_gdal()
+    src_ds = gdal.Open(input_raster)
+    if src_ds is None:
+        raise ValueError(f"Failed to open raster file: {input_raster}")
+
+    width = src_ds.RasterXSize
+    height = src_ds.RasterYSize
+    part_height = height // num_parts
+    output_files = []
+
+    for i in range(num_parts):
+        ulx = 0
+        uly = i * part_height
+        lrx = width
+        lry = (i + 1) * part_height if i < num_parts - 1 else height
+        output_file = f"{os.path.splitext(input_raster)[0]}_part_{i + 1}.tif"
+        output_files.append(output_file)
+        gdal.Translate(
+            output_file,
+            src_ds,
+            srcWin=[ulx, uly, lrx - ulx, lry - uly],
+            format="GTiff",
+        )
+
+    src_ds = None
+    return output_files
+
+
+def polygonize_raster(
+    input_tiff, output_vector=None, layer_name="layer", output_format="Parquet"
+):
+    """Polygonize a raster and write the features to a vector dataset."""
+    format_extensions = {
+        "GPKG": ".gpkg",
+        "GeoJSON": ".geojson",
+        "Parquet": ".parquet",
+        "Shapefile": ".shp",
+    }
+
+    if output_vector is None:
+        base_name, _ = os.path.splitext(input_tiff)
+        output_vector = base_name + format_extensions.get(output_format, ".gpkg")
+
+    gdal_polygonize_script = _find_script_on_path("gdal_polygonize.py")
+
+    command = [
+        sys.executable,
+        gdal_polygonize_script,
+        input_tiff,
+        "-f",
+        output_format,
+        output_vector,
+        layer_name,
+    ]
+    subprocess.run(command, check=True, text=True, capture_output=True)
+    return output_vector
+
+
+def clip_rasters_by_extent(input_folder, output_folder, mask_layer_path):
+    """Clip all rasters in a folder to the bounding box of a mask layer."""
+    os.makedirs(output_folder, exist_ok=True)
+    mask_bounds = gpd.read_file(mask_layer_path).total_bounds
+    output_paths = []
+
+    for file_name in os.listdir(input_folder):
+        if file_name.endswith(".tif"):
+            input_raster_path = os.path.join(input_folder, file_name)
+            base_name, ext = os.path.splitext(file_name)
+            output_raster_path = os.path.join(output_folder, f"{base_name}_clipped{ext}")
+
+            raster = rioxarray.open_rasterio(input_raster_path, masked=True)
+            clipped_raster = raster.rio.clip_box(*mask_bounds)
+            clipped_raster.rio.to_raster(output_raster_path)
+            output_paths.append(output_raster_path)
+
+    return output_paths
+
+
+def clip_raster_with_vector(raster_file, geojson_directory, output_directory):
+    """Clip one raster by every GeoJSON mask file in a directory."""
+    raster = rioxarray.open_rasterio(raster_file, masked=True)
+    output_paths = []
+
+    for file_name in os.listdir(geojson_directory):
+        if file_name.endswith(".geojson"):
+            geojson_path = os.path.join(geojson_directory, file_name)
+            geojson = gpd.read_file(geojson_path).to_crs(raster.rio.crs)
+            clipped_raster = raster.rio.clip(geojson.geometry, geojson.crs, drop=True)
+
+            output_file = os.path.join(
+                output_directory, file_name.replace(".geojson", "_clipped.tif")
+            )
+            clipped_raster.rio.to_raster(output_file, driver="GTiff")
+            output_paths.append(output_file)
+
+    return output_paths
+
+
+def clip_raster_by_masks(input_raster_path, mask_input, output_folder):
+    """Clip one or many rasters by one or many mask layers."""
+    os.makedirs(output_folder, exist_ok=True)
+
+    if os.path.isdir(input_raster_path):
+        raster_files = [
+            file_name
+            for file_name in os.listdir(input_raster_path)
+            if file_name.endswith((".tif", ".tiff"))
+        ]
+    elif os.path.isfile(input_raster_path) and input_raster_path.endswith(
+        (".tif", ".tiff")
+    ):
+        raster_files = [os.path.basename(input_raster_path)]
+    else:
+        raise ValueError("Invalid raster input.")
+
+    if os.path.isdir(mask_input):
+        mask_files = [
+            file_name
+            for file_name in os.listdir(mask_input)
+            if file_name.endswith((".shp", ".geojson"))
+        ]
+    elif os.path.isfile(mask_input) and mask_input.endswith((".shp", ".geojson")):
+        mask_files = [os.path.basename(mask_input)]
+    else:
+        raise ValueError("Invalid mask input.")
+
+    output_paths = []
+    for raster_file in raster_files:
+        raster_path = (
+            os.path.join(input_raster_path, raster_file)
+            if os.path.isdir(input_raster_path)
+            else input_raster_path
+        )
+        input_raster_name = os.path.splitext(raster_file)[0]
+
+        for mask_file in mask_files:
+            mask_path = (
+                os.path.join(mask_input, mask_file)
+                if os.path.isdir(mask_input)
+                else mask_input
+            )
+            mask_name = os.path.splitext(os.path.basename(mask_file))[0]
+
+            mask_gdf = gpd.read_file(mask_path)
+            raster = rioxarray.open_rasterio(raster_path, masked=True)
+            clipped_raster = raster.rio.clip(mask_gdf.geometry, mask_gdf.crs, drop=True)
+
+            output_file_name = f"{input_raster_name}_clipped_by_{mask_name}.tif"
+            output_raster_path = os.path.join(output_folder, output_file_name)
+            clipped_raster.rio.to_raster(output_raster_path)
+            output_paths.append(output_raster_path)
+
+    return output_paths
+
+
+def clip_raster_to_reference_extent(ground_truth_path, prediction_path):
+    """Clip one raster to another raster's extent and dimensions."""
+    with rasterio.open(prediction_path) as pred_src:
+        pred_extent = pred_src.bounds
+        pred_box = box(*pred_extent)
+        pred_width = pred_src.width
+        pred_height = pred_src.height
+        pred_transform = pred_src.transform
+
+    with rasterio.open(ground_truth_path, "r+") as gt_src:
+        ground_truth, _ = mask(gt_src, [pred_box], crop=True)
+        if ground_truth.shape[1] != pred_height or ground_truth.shape[2] != pred_width:
+            ground_truth_resized = np.resize(
+                ground_truth, (ground_truth.shape[0], pred_height, pred_width)
+            )
+        else:
+            ground_truth_resized = ground_truth
+
+        clipped_gt_meta = gt_src.meta.copy()
+        clipped_gt_meta.update(
+            {
+                "height": ground_truth_resized.shape[1],
+                "width": ground_truth_resized.shape[2],
+                "transform": pred_transform,
+            }
+        )
+
+    with rasterio.open(ground_truth_path, "w", **clipped_gt_meta) as out_src:
+        out_src.write(ground_truth_resized)
+
+    return ground_truth_resized, clipped_gt_meta
 

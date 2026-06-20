@@ -1,0 +1,3 @@
+# styles module
+
+::: pysatgeo.styles
