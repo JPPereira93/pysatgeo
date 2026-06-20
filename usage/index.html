@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Python package for satellite processing functions for raster and also vector">
+        <meta name="description" content="Python package for raster and vector geospatial processing">
       
       
         <meta name="author" content="JPPereira93">
@@ -18,7 +18,7 @@
         <link rel="prev" href="../installation/">
       
       
-        <link rel="next" href="../contributing/">
+        <link rel="next" href="../examples/intro/">
       
       
         
@@ -334,6 +334,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -351,87 +369,91 @@
 
       </a>
       
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../contributing/" class="md-nav__link">
         
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
-  <span class="md-ellipsis">
+  
     
   
-    Contributing
   
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
+        <li class="md-nav__item">
+  <a href="#basic-import" class="md-nav__link">
+    <span class="md-ellipsis">
       
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../faq/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    FAQ
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
+        Basic Import
       
+    </span>
+  </a>
+  
+</li>
       
+        <li class="md-nav__item">
+  <a href="#use-functions-from-the-top-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use Functions From The Top Level
+      
+    </span>
+  </a>
   
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#module-imports-still-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module Imports Still Work
+      
+    </span>
+  </a>
   
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#raster-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Raster Example
+      
+    </span>
+  </a>
   
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vector-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vector Example
+      
+    </span>
+  </a>
   
-    <li class="md-nav__item">
-      <a href="../changelog/" class="md-nav__link">
-        
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-recommendation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Recommendation
+      
+    </span>
+  </a>
   
+</li>
+      
+    </ul>
   
-  <span class="md-ellipsis">
-    
-  
-    Changelog
-  
-
-    
-  </span>
-  
-  
-
-      </a>
+</nav>
+      
     </li>
   
 
@@ -478,10 +500,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -499,8 +521,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -560,10 +582,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
@@ -581,8 +603,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -676,6 +698,202 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raster_analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    raster_analysis module
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../terrain/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    terrain module
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sampling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sampling module
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ranking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ranking module
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../styles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    styles module
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../netcdf/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    netcdf module
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gee/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    gee module
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -703,6 +921,80 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#basic-import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Import
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#use-functions-from-the-top-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use Functions From The Top Level
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#module-imports-still-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module Imports Still Work
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#raster-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Raster Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vector-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vector Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-recommendation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Recommendation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -725,9 +1017,120 @@
 
 
 <h1 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h1>
-<p>To use pysatgeo in a project:</p>
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>import pysatgeo
+<p><code>pysatgeo</code> now exposes its public functions from the top-level package.</p>
+<p>This means:</p>
+<ul>
+<li><code>import pysatgeo</code> works</li>
+<li>package metadata like <code>pysatgeo.__version__</code> works</li>
+<li>public functions can be called directly as <code>pysatgeo.some_function(...)</code></li>
+<li>module imports such as <code>pysatgeo.raster</code> and <code>pysatgeo.vector</code> still work too</li>
+</ul>
+<h2 id="basic-import">Basic Import<a class="headerlink" href="#basic-import" title="Permanent link">&para;</a></h2>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">pysatgeo</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">pysatgeo</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
+<h2 id="use-functions-from-the-top-level">Use Functions From The Top Level<a class="headerlink" href="#use-functions-from-the-top-level" title="Permanent link">&para;</a></h2>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">pysatgeo</span>
+
+<span class="n">pysatgeo</span><span class="o">.</span><span class="n">reproject_clip_resample_tiff</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="n">pysatgeo</span><span class="o">.</span><span class="n">stack_rasters</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="n">pysatgeo</span><span class="o">.</span><span class="n">assign_crs_to_vector</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="module-imports-still-work">Module Imports Still Work<a class="headerlink" href="#module-imports-still-work" title="Permanent link">&para;</a></h2>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">pysatgeo.raster</span><span class="w"> </span><span class="kn">import</span> <span class="n">reproject_clip_resample_tiff</span><span class="p">,</span> <span class="n">stack_rasters</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysatgeo.vector</span><span class="w"> </span><span class="kn">import</span> <span class="n">assign_crs_to_vector</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="raster-example">Raster Example<a class="headerlink" href="#raster-example" title="Permanent link">&para;</a></h2>
+<p>Reproject, clip, and resample a raster:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">pysatgeo</span>
+
+<span class="n">output_raster</span> <span class="o">=</span> <span class="n">pysatgeo</span><span class="o">.</span><span class="n">reproject_clip_resample_tiff</span><span class="p">(</span>
+    <span class="n">input_tiff</span><span class="o">=</span><span class="s2">&quot;input.tif&quot;</span><span class="p">,</span>
+    <span class="n">output_tiff</span><span class="o">=</span><span class="s2">&quot;output.tif&quot;</span><span class="p">,</span>
+    <span class="n">aoi_shapefile</span><span class="o">=</span><span class="s2">&quot;aoi.geojson&quot;</span><span class="p">,</span>
+    <span class="n">target_srs</span><span class="o">=</span><span class="s2">&quot;EPSG:32629&quot;</span><span class="p">,</span>
+    <span class="n">target_res_x</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+    <span class="n">target_res_y</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+    <span class="n">resampling_method</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span>
+    <span class="n">clip</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">clip_by_extent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">no_data</span><span class="o">=-</span><span class="mi">9999</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+<p>Stack multiple rasters:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">pysatgeo</span>
+
+<span class="n">pysatgeo</span><span class="o">.</span><span class="n">stack_rasters</span><span class="p">(</span>
+    <span class="n">tiff_files</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;raster_1.tif&quot;</span><span class="p">,</span> <span class="s2">&quot;raster_2.tif&quot;</span><span class="p">],</span>
+    <span class="n">output_tiff</span><span class="o">=</span><span class="s2">&quot;stacked_sum.tif&quot;</span><span class="p">,</span>
+    <span class="n">operation</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="vector-example">Vector Example<a class="headerlink" href="#vector-example" title="Permanent link">&para;</a></h2>
+<p>Assign a CRS to a vector dataset:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">pysatgeo</span>
+
+<span class="n">pysatgeo</span><span class="o">.</span><span class="n">assign_crs_to_vector</span><span class="p">(</span>
+    <span class="n">input_geojson_path</span><span class="o">=</span><span class="s2">&quot;input.geojson&quot;</span><span class="p">,</span>
+    <span class="n">output_geojson_path</span><span class="o">=</span><span class="s2">&quot;output.geojson&quot;</span><span class="p">,</span>
+    <span class="n">crs_epsg</span><span class="o">=</span><span class="mi">4326</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+<p>Shift a vector layer to a raster reference:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">pysatgeo</span>
+
+<span class="n">pysatgeo</span><span class="o">.</span><span class="n">shift_vector_to_raster_reference</span><span class="p">(</span>
+    <span class="n">vector_path</span><span class="o">=</span><span class="s2">&quot;roads.geojson&quot;</span><span class="p">,</span>
+    <span class="n">raster_path</span><span class="o">=</span><span class="s2">&quot;reference.tif&quot;</span><span class="p">,</span>
+    <span class="n">output_vector_path</span><span class="o">=</span><span class="s2">&quot;roads_shifted.geojson&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="current-recommendation">Current Recommendation<a class="headerlink" href="#current-recommendation" title="Permanent link">&para;</a></h2>
+<p>Use whichever style feels clearer in your codebase:</p>
+<ul>
+<li><code>import pysatgeo</code> if you want one package entry point</li>
+<li><code>from pysatgeo.raster import ...</code> if you want module-level clarity</li>
+</ul>
+<p>For learning and notebooks, <code>import pysatgeo</code> is usually the nicest experience now.</p>
 
 
 
@@ -750,7 +1153,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="September 5, 2025 12:40:00 UTC"><span class="timeago" datetime="2025-09-05T12:40:00+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="September 5, 2025 12:40:00 UTC">2025-09-05</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="June 20, 2026 14:12:17 UTC"><span class="timeago" datetime="2026-06-20T14:12:17+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="June 20, 2026 14:12:17 UTC">2026-06-20</span>
   </span>
 
     
