@@ -4,11 +4,14 @@ version = "0.4.1"
 dynamic = [
     "dependencies",
 ]
-description = "Python package for satellite processing functions for raster and also vector"
+description = "Python package for raster and vector geospatial processing"
 readme = "README.md"
 requires-python = ">=3.8"
 keywords = [
     "pysatgeo",
+    "geospatial",
+    "raster",
+    "vector",
 ]
 license = {text = "MIT License"}
 authors = [
@@ -25,10 +28,9 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-[project.optional-dependencies]
-all = [
-    "pysatgeo[extra]",
-]
+[project.urls]
+Homepage = "https://github.com/JPPereira93/pysatgeo"
+Issues = "https://github.com/JPPereira93/pysatgeo/issues"
 
 
 [tool]
@@ -38,11 +40,6 @@ exclude = ["docs*"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
-
-
-[tool.distutils.bdist_wheel]
-universal = true
-
 
 [tool.bumpversion]
 current_version = "0.4.1"
@@ -66,10 +63,11 @@ exclude = [
 ]
 max-line-length = 88
 
-
-[project.urls]
-Homepage = "https://github.com/JPPereira93/pysatgeo"
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
 
 [build-system]
-requires = ["setuptools>=64", "setuptools_scm>=8"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
