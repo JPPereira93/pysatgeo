@@ -40,8 +40,9 @@ jobs:
             - name: Install dependencies
               run: |
                   pip install --user -r requirements.txt
+                  pip install --user pytest
                   pip install .
             - name: PKG-TEST
               run: |
-                  python -m unittest discover tests/
+                  pytest -v
 
