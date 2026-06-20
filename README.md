@@ -34,6 +34,12 @@ experimental repo.
 
 ## Installation
 
+If you want to install the published package as a normal dependency:
+
+```powershell
+pip install pysatgeo
+```
+
 Because the package depends on GDAL, `rasterio`, and `geopandas`, a Conda
 environment is usually the easiest setup, especially on Windows.
 
@@ -44,6 +50,12 @@ conda create -n pysatgeo python=3.11 -y
 conda activate pysatgeo
 conda install -c conda-forge geopandas rasterio rioxarray gdal pyarrow shapely xarray scikit-learn matplotlib mapclassify scipy pytest -y
 pip install pysatgeo
+```
+
+If you want the latest GitHub code without a local clone:
+
+```powershell
+pip install git+https://github.com/JPPereira93/pysatgeo.git
 ```
 
 If you are working from this repository:

@@ -1,17 +1,20 @@
 # Installation
 
-## PyPI Install
+## Install As A Normal Package
 
-To install the latest published release:
+If you just want to use `pysatgeo` in a project, and not develop the repo
+itself, install it from PyPI:
 
 ```powershell
 pip install pysatgeo
 ```
 
-## Conda Environment For Geospatial Work
+That installs the latest published version like any other Python dependency.
 
-Because geospatial dependencies can be tricky, especially on Windows, Conda is
-often the most reliable setup:
+## Install In A Geospatial Conda Environment
+
+If you are on Windows or want the safest setup for GDAL-based libraries, create
+the environment first and then install the published package into it:
 
 ```powershell
 conda create -n pysatgeo python=3.11 -y
@@ -20,9 +23,21 @@ conda install -c conda-forge geopandas rasterio rioxarray gdal pyarrow shapely x
 pip install pysatgeo
 ```
 
-## Install From Source
+This is still a normal package install. The only difference is that the
+underlying geospatial dependencies come from Conda.
 
-If you are working on the repository itself:
+## Install The Latest Unreleased GitHub Version
+
+If you want the current GitHub code without cloning the repo locally:
+
+```powershell
+pip install git+https://github.com/JPPereira93/pysatgeo.git
+```
+
+## Install From Source For Development
+
+Only use this if you are working on the repository itself and want local edits
+to affect the installed package:
 
 ```powershell
 git clone https://github.com/JPPereira93/pysatgeo.git
