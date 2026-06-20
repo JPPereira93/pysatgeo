@@ -1,4 +1,4 @@
 
 # pysatgeo module
 
-::: pysatgeo.pysatgeo
+::: pysatgeo

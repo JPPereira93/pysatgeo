@@ -83,4 +83,5 @@ nav:
         - examples/intro.ipynb
     - API Reference:
           - pysatgeo module: pysatgeo.md
-          - common module: common.md
+          - raster module: raster.md
+          - vector module: vector.md

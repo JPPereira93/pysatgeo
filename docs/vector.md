@@ -1,0 +1,3 @@
+# vector module
+
+::: pysatgeo.vector
