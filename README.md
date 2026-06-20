@@ -6,10 +6,6 @@
 `pysatgeo` is a small Python package for raster and vector geospatial
 processing.
 
-The project started as a learning repo for packaging, CI, and geospatial
-utilities. It has now been trimmed down to a smaller set of maintained modules
-with clearer imports, better tests, and lighter docs.
-
 ## Current Scope
 
 The package is organized into a few focused modules:
@@ -24,8 +20,6 @@ The package is organized into a few focused modules:
 
 ## Project Status
 
-This package is still modest, but it is much more coherent than the original
-experimental repo.
 
 - Public imports are available from `pysatgeo` itself.
 - Top-level imports are resolved lazily to keep `import pysatgeo` lightweight.
