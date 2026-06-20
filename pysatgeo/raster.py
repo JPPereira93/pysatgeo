@@ -7,7 +7,6 @@ import numpy as np
 import geopandas as gpd
 import os
 import subprocess
-from osgeo import gdal
 import xarray as xr
 
 
@@ -20,6 +19,18 @@ def _output_path_with_suffix(input_path, suffix):
 def _run_command(command):
     """Run a GDAL command and fail loudly when it does not succeed."""
     subprocess.run(command, check=True)
+
+
+def _require_gdal():
+    """Import GDAL only when a function actually needs the Python bindings."""
+    try:
+        from osgeo import gdal
+    except ImportError as exc:
+        raise ImportError(
+            "GDAL Python bindings are required for this function. "
+            "Install GDAL in the current environment."
+        ) from exc
+    return gdal
 
 
 def reproject_clip_resample_tiff(input_tiff=None, output_tiff=None, aoi_shapefile=None, target_srs=None, target_res_x=None, target_res_y=None, resampling_method=None, clip=False, clip_by_extent=False, no_data=None):
@@ -113,6 +124,8 @@ def align_rasters(rasters, source_path, output_suffix, folder_name='Aligned'):
     if not rasters:
         return False
 
+    gdal = _require_gdal()
+
     # Calculate the parent directory of source_path
     parent_dir = os.path.dirname(source_path.rstrip(os.sep))
     
@@ -198,6 +211,8 @@ def align_rasters_in_place(folder_path, output_suffix):
     if not rasters:
         print("No .tiff files found in the specified folder.")
         return False
+
+    gdal = _require_gdal()
     
     command = ["gdalbuildvrt", "-te"]
     hDataset = gdal.Open(rasters[0], gdal.GA_ReadOnly)
@@ -269,6 +284,8 @@ def stack_rasters(tiff_files, output_tiff, aoi_shapefile=None, chunk_size=None, 
 
     if operation not in {"mean", "sum"}:
         raise ValueError("Invalid operation. Choose 'mean' or 'sum'")
+
+    gdal = _require_gdal()
 
     if aoi_shapefile:
         aoi = gpd.read_file(aoi_shapefile)
