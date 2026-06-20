@@ -25,16 +25,9 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-[project.entry-points."console_scripts"]
-pysatgeo = "pysatgeo.cli:main"
-
 [project.optional-dependencies]
 all = [
     "pysatgeo[extra]",
-]
-
-extra = [
-    "pandas",
 ]
 
 

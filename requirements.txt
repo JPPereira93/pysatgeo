@@ -1,1 +1,12 @@
 numpy
+pandas
+geopandas
+shapely
+rasterio
+rioxarray
+xarray
+scikit-learn
+matplotlib
+mapclassify
+pyarrow
+GDAL
